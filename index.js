@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const dotenv = require('dotenv');
-const { handleDownloader } = require('./utils/downloader');
+const { handleDownloader, setupAudioButton } = require('./utils/downloader');
 const { getToken, getTokens, saveTokens, addToken, removeToken, getTokenCount, getFacebookInfo } = require('./utils/facebook');
 const fs = require('fs');
 const path = require('path');
@@ -8,9 +8,15 @@ const path = require('path');
 dotenv.config();
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { 
-  polling: true,
+  polling: {
+    params: {
+      allowed_updates: ["message", "callback_query", "message_reaction"]
+    }
+  },
   request: { timeout: 60000 }
 });
+
+setupAudioButton(bot);
 
 const ADMIN_ID = process.env.ADMIN_ID;
 const CONFIG_PATH = path.join(__dirname, 'data/config.json');
@@ -45,6 +51,24 @@ function clearUserState(chatId, userId) {
 
 function isAdmin(userId) {
   return String(userId) === String(ADMIN_ID);
+}
+
+function getMainMenuText(userId) {
+  return `
+🤖 Chào mừng bạn đến với Lemon Media!
+
+Tôi có thể giúp bạn:
+
+📌 🔍 Tra cứu Facebook:
+• Lấy thông tin chi tiết từ profile Facebook
+
+📌 📥 Tải video / ảnh / nhạc:
+• Hỗ trợ 64+ nền tảng
+
+${isAdmin(userId) ? '🛠️ Bạn là **Admin** - Có quyền quản lý token!' : ''}
+
+👇 **Chọn chức năng bên dưới:**
+  `;
 }
 
 // Keyboard chính
@@ -146,22 +170,8 @@ ${workInfo}
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
-  
-  bot.sendMessage(chatId, `
-🤖 Chào mừng bạn đến với Lemon Media!
 
-Tôi có thể giúp bạn:
-
-📌 🔍 Tra cứu Facebook:
-• Lấy thông tin chi tiết từ profile Facebook
-
-📌 📥 Tải video / ảnh / nhạc:
-• Hỗ trợ 64+ nền tảng
-
-${isAdmin(userId) ? '🛠️ Bạn là **Admin** - Có quyền quản lý token!' : ''}
-
-👇 **Chọn chức năng bên dưới:**
-  `, { 
+  bot.sendMessage(chatId, getMainMenuText(userId), { 
     parse_mode: 'Markdown',
     reply_markup: getMainKeyboard(userId)
   });
@@ -619,18 +629,14 @@ ${isAdmin(userId) ? `
       break;
 
     case 'back_main':
-      await bot.editMessageText(`
-🤖 **Facebook Info Bot**
-
-Chọn chức năng bạn muốn sử dụng:
-      `, {
-        chat_id: chatId,
-        message_id: messageId,
-        parse_mode: 'Markdown',
-        reply_markup: getMainKeyboard(userId)
-      });
-      clearUserState(chatId, userId);
-      break;
+  await bot.editMessageText(getMainMenuText(userId), {
+    chat_id: chatId,
+    message_id: messageId,
+    parse_mode: 'Markdown',
+    reply_markup: getMainKeyboard(userId)
+  });
+  clearUserState(chatId, userId);
+  break;
   }
 });
 
@@ -643,6 +649,13 @@ bot.on('message', async (msg) => {
   if (!text || text.startsWith('/')) return;
 
   const state = getUserState(chatId, userId);
+  if (!state) {
+  await bot.sendMessage(chatId, getMainMenuText(userId), {
+    parse_mode: 'Markdown',
+    reply_markup: getMainKeyboard(userId)
+  });
+  return;
+}
 
   if (state === 'waiting_download') {
   const handled = await handleDownloader(bot, msg);
