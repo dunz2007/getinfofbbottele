@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const dotenv = require('dotenv');
+const { handleDownloader } = require('./utils/downloader');
 const { getToken, getTokens, saveTokens, addToken, removeToken, getTokenCount, getFacebookInfo } = require('./utils/facebook');
 const fs = require('fs');
 const path = require('path');
@@ -36,6 +37,7 @@ function getMainKeyboard(userId) {
   const keyboard = {
     inline_keyboard: [
       [{ text: '🔍 Tra cứu Facebook', callback_data: 'search' }],
+      [{ text: '⬇️ Tải video / ảnh / nhạc đa nền tảng', callback_data: 'download_media' }],
       [{ text: '📋 Hướng dẫn sử dụng', callback_data: 'help' }]
     ]
   };
@@ -257,6 +259,100 @@ hoặc
       });
       userStates[chatId] = 'waiting_uid';
       break;
+
+    case 'download_media':
+  await bot.editMessageText(
+`⬇️ **TẢI MEDIA ĐA NỀN TẢNG**
+
+Gửi liên kết **video, ảnh, âm thanh, bài viết hoặc sticker** từ một trong các nền tảng dưới đây. Bot sẽ tự động nhận diện URL và tải media nếu API hỗ trợ.
+
+### 📋 Danh sách nền tảng hỗ trợ
+
+1. Facebook
+2. YouTube
+3. TikTok
+4. Douyin
+5. SoundCloud
+6. CapCut
+7. Threads
+8. ESPN
+9. IMDb
+10. Imgur
+11. iFunny
+12. Izlesene
+13. Reddit
+14. X (Twitter)
+15. Vimeo
+16. Snapchat
+17. Bilibili
+18. Dailymotion
+19. ShareChat
+20. Likee
+21. LinkedIn
+22. Tumblr
+23. Hipi
+24. Telegram
+25. GetStickerPack
+26. BitChute
+27. Febspot
+28. 9GAG
+29. OKE.RU
+30. Rumble
+31. Streamable
+32. TED
+33. Sohu TV
+34. XVideos
+35. XNXX
+36. Xiaohongshu (XHS)
+37. Ixigua
+38. Weibo
+39. Sina Video
+40. Mixcloud
+41. Bandcamp
+42. Spotify
+43. Zing MP3
+44. Instagram
+45. Kuaishou
+46. Pinterest
+47. Miaopai
+48. Meipai
+49. Xiaoying
+50. National Video
+51. Yingke
+52. Kwai
+53. Akıllı TV
+54. Blogger
+55. BluTV
+56. BuzzFeed
+57. Chingari
+58. Flickr
+59. Gaana
+60. MX TakaTak
+61. Periscope
+62. PuhuTV
+63. VK
+64. Twitch
+65. Memedroid
+
+### 📥 Ví dụ
+
+• https://www.tiktok.com/...
+
+> **Lưu ý:** Khả năng tải phụ thuộc vào API của từng nền tảng. Một số nội dung riêng tư, giới hạn độ tuổi hoặc được bảo vệ bản quyền có thể không hỗ trợ tải xuống.
+`,
+    {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '🔙 Quay lại', callback_data: 'back_main' }]
+        ]
+      }
+    }
+  );
+  userStates[chatId] = 'waiting_download';
+  break;
 
     case 'admin_token':
       if (!isAdmin(userId)) {
@@ -531,6 +627,19 @@ bot.on('message', async (msg) => {
   if (!text || text.startsWith('/')) return;
 
   const state = userStates[chatId];
+
+  if (state === 'waiting_download') {
+  const handled = await handleDownloader(bot, msg);
+  if (!handled) {
+    await bot.sendMessage(chatId, '❌ Vui lòng gửi một link hợp lệ từ nền tảng được hỗ trợ.');
+  }
+  return;
+}
+
+  if (text.includes('http') && state !== 'waiting_search') {
+  const handled = await handleDownloader(bot, msg);
+  if (handled) return;
+}
 
   // Xử lý thêm token
   if (state === 'waiting_add_token' && isAdmin(userId)) {
