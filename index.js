@@ -27,6 +27,22 @@ if (!fs.existsSync(CONFIG_PATH)) {
 
 const userStates = {};
 
+function getStateKey(chatId, userId) {
+  return `${chatId}:${userId}`;
+}
+
+function setUserState(chatId, userId, state) {
+  userStates[getStateKey(chatId, userId)] = state;
+}
+
+function getUserState(chatId, userId) {
+  return userStates[getStateKey(chatId, userId)];
+}
+
+function clearUserState(chatId, userId) {
+  delete userStates[getStateKey(chatId, userId)];
+}
+
 function isAdmin(userId) {
   return String(userId) === String(ADMIN_ID);
 }
@@ -257,7 +273,7 @@ hoặc
           ]
         }
       });
-      userStates[chatId] = 'waiting_uid';
+      setUserState(chatId, userId, 'waiting_uid');
       break;
 
     case 'download_media':
@@ -351,7 +367,7 @@ Gửi liên kết **video, ảnh, âm thanh, bài viết hoặc sticker** từ m
       }
     }
   );
-  userStates[chatId] = 'waiting_download';
+  setUserState(chatId, userId, 'waiting_download');
   break;
 
     case 'admin_token':
@@ -489,7 +505,7 @@ Chọn token bạn muốn sử dụng:
     case 'add_token':
       if (!isAdmin(userId)) return;
       
-      userStates[chatId] = 'waiting_add_token';
+      setUserState(chatId, userId, 'waiting_add_token');
       await bot.editMessageText(`
 ➕ **THÊM TOKEN MỚI**
 
@@ -613,7 +629,7 @@ Chọn chức năng bạn muốn sử dụng:
         parse_mode: 'Markdown',
         reply_markup: getMainKeyboard(userId)
       });
-      delete userStates[chatId];
+      clearUserState(chatId, userId);
       break;
   }
 });
@@ -626,7 +642,7 @@ bot.on('message', async (msg) => {
 
   if (!text || text.startsWith('/')) return;
 
-  const state = userStates[chatId];
+  const state = getUserState(chatId, userId);
 
   if (state === 'waiting_download') {
   const handled = await handleDownloader(bot, msg);
@@ -664,7 +680,7 @@ Bot đã sẵn sàng để sử dụng!
           ]
         }
       });
-      delete userStates[chatId];
+      clearUserState(chatId, userId);
     } else {
       await bot.sendMessage(chatId, `❌ ${result.message}`);
     }
