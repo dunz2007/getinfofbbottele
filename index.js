@@ -132,19 +132,19 @@ bot.onText(/\/start/, (msg) => {
   const userId = msg.from.id;
   
   bot.sendMessage(chatId, `
-🤖 **Chào mừng bạn đến với Facebook Info Bot!**
+🤖 Chào mừng bạn đến với Lemon Media!
 
-Tôi có thể giúp bạn lấy thông tin từ profile Facebook.
+Tôi có thể giúp bạn:
 
-📌 **Cách sử dụng:**
-• Nhấn nút "🔍 Tra cứu Facebook"
-• Gửi UID hoặc link Facebook
+📌 🔍 Tra cứu Facebook:
+• Lấy thông tin chi tiết từ profile Facebook
 
-💡 **Ví dụ:** 
-• UID: 1000123456789
-• Link: https://facebook.com/username
+📌 📥 Tải video / ảnh / nhạc:
+• Hỗ trợ 64+ nền tảng
 
-${isAdmin(userId) ? '🛠️ Bạn là Admin - Có quyền quản lý token!' : ''}
+${isAdmin(userId) ? '🛠️ Bạn là **Admin** - Có quyền quản lý token!' : ''}
+
+👇 **Chọn chức năng bên dưới:**
   `, { 
     parse_mode: 'Markdown',
     reply_markup: getMainKeyboard(userId)
