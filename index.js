@@ -695,13 +695,16 @@ Bot đã sẵn sàng để sử dụng!
       let uid = text.trim();
       
       if (text.includes('facebook.com') || text.includes('fb.com')) {
-        let match = text.match(/(?:facebook\.com\/|fb\.com\/)([^/?]+)/);
-        if (match) uid = match[1];
-        else {
-          match = text.match(/id=(\d+)/);
-          if (match) uid = match[1];
-        }
-      }
+  const idMatch = text.match(/[?&]id=(\d+)/);
+  if (idMatch) {
+    uid = idMatch[1];
+  } else {
+    const usernameMatch = text.match(/(?:facebook\.com\/|fb\.com\/)([^/?#]+)/);
+    if (usernameMatch) {
+      uid = usernameMatch[1];
+    }
+  }
+}
 
       const token = getToken();
       if (!token) {
