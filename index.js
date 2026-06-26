@@ -636,11 +636,6 @@ bot.on('message', async (msg) => {
   return;
 }
 
-  if (text.includes('http') && state !== 'waiting_search') {
-  const handled = await handleDownloader(bot, msg);
-  if (handled) return;
-}
-
   // Xử lý thêm token
   if (state === 'waiting_add_token' && isAdmin(userId)) {
     const token = text.trim();
@@ -677,7 +672,7 @@ Bot đã sẵn sàng để sử dụng!
   }
 
   // Xử lý tra cứu
-  if (state === 'waiting_uid' || text.match(/\d{5,}/) || text.includes('facebook.com')) {
+  if (state === 'waiting_uid') {
     const processingMsg = await bot.sendMessage(chatId, '⏳ Đang lấy thông tin... Vui lòng đợi!');
 
     try {

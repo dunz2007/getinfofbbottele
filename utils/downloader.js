@@ -239,38 +239,45 @@ async function handleDownloader(bot, msg) {
   const mainCaption = `[ ${platform} ] - Download\n\n${result.caption}`;
   const cleanTitle = sanitizeFileName(result.title || platform);
 
-  for (let i = 0; i < result.files.length; i++) {
-    const file = result.files[i];
-    const caption = i === 0 ? mainCaption : undefined;
+  // Gom tất cả ảnh thành album
+const images = result.files.filter(f => f.type === "image");
+const others = result.files.filter(f => f.type !== "image");
 
-    try {
-      if (file.type === "video") {
-        await bot.sendVideo(chatId, fs.createReadStream(file.path), { caption });
-      } else if (file.type === "image") {
-        await bot.sendPhoto(chatId, fs.createReadStream(file.path), { caption });
-      } else if (file.type === "audio") {
-        await bot.sendDocument(
-          chatId,
-          fs.createReadStream(file.path),
-          { caption },
-          {
-            filename: `${cleanTitle}.mp3`,
-            contentType: "audio/mpeg"
-          }
+if (images.length > 1) {
+    for (let i = 0; i < images.length; i += 10) {
+        const chunk = images.slice(i, i + 10);
+
+        await bot.sendMediaGroup(
+            chatId,
+            chunk.map((file, index) => ({
+                type: "photo",
+                media: fs.createReadStream(file.path),
+                caption: i === 0 && index === 0 ? mainCaption : undefined
+            }))
         );
-      } else {
-        await bot.sendDocument(chatId, fs.createReadStream(file.path), { caption });
-      }
-    } catch (err) {
-      console.error("send media error:", err.message);
-      await bot.sendDocument(
-        chatId,
-        fs.createReadStream(file.path),
-        { caption },
-        { filename: `${cleanTitle}.${file.ext || "bin"}` }
-      ).catch(() => {});
     }
-  }
+} else if (images.length === 1) {
+    await bot.sendPhoto(
+        chatId,
+        fs.createReadStream(images[0].path),
+        { caption: mainCaption }
+    );
+}
+
+// gửi video/audio sau
+for (const file of others) {
+    if (file.type === "video") {
+        await bot.sendVideo(chatId, fs.createReadStream(file.path));
+    } else if (file.type === "audio") {
+        await bot.sendDocument(
+            chatId,
+            fs.createReadStream(file.path),
+            {
+                filename: `${cleanTitle}.mp3`
+            }
+        );
+    }
+}
 
   return true;
 }
