@@ -343,11 +343,6 @@ async function handleDownloader(bot, msg) {
 const cleanTitle = sanitizeFileName(result.title || platform);
 const videoUrl = result.files.find(f => f.type === "video")?.url;
 
-const directLinks = [
-  videoUrl ? `🎥 Link video: ${videoUrl}` : null,
-  audioUrl ? `🎵 Link MP3: ${audioUrl}` : null
-].filter(Boolean).join("\n");
-
 const caption =
 `👤 Tên Kênh: ${result.author}
 📝 Tiêu Đề: ${limitText(result.title, 700)}
