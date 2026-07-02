@@ -94,7 +94,93 @@ function convertTime(time) {
   return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 }
 
+async function resolveUrl(url) {
+  try {
+    const response = await axios.get(url, {
+      maxRedirects: 5,
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
+
+    return response.request?.res?.responseUrl || url;
+  } catch {
+    return null;
+  }
+}
+
+function extractUidFromHtml(html) {
+  const patterns = [
+    /"userID":"(\d+)"/,
+    /"entity_id":"(\d+)"/,
+    /"fb:\/\/profile\/(\d+)"/,
+    /"pageID":"(\d+)"/,
+    /id=(\d+)/
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) return match[1];
+  }
+
+  const metaMatch = html.match(
+    /<meta[^>]+property=["']al:android:url["'][^>]+content=["']([^"']+)["']/i
+  );
+
+  if (metaMatch) {
+    const idMatch = metaMatch[1].match(/id=(\d+)/);
+    if (idMatch) return idMatch[1];
+  }
+
+  return null;
+}
+
+async function extractUidFromUrl(url) {
+  const resolvedUrl = await resolveUrl(url);
+  if (!resolvedUrl) return null;
+
+  try {
+    const response = await axios.get(resolvedUrl, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0'
+      }
+    });
+
+    if (response.status === 200) {
+      return extractUidFromHtml(response.data);
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveUid(input) {
+  if (!input) return null;
+
+  input = String(input).trim();
+
+  if (/^\d+$/.test(input)) return input;
+
+  let url = input;
+
+  if (!url.startsWith('http')) {
+    url = `https://facebook.com/${url}`;
+  }
+
+  return await extractUidFromUrl(url);
+}
+
 async function getFacebookInfo(uid, retryCount = 0) {
+  uid = await resolveUid(uid);
+
+  if (!uid) {
+    throw new Error('UID_NOT_RESOLVED');
+  }
+
   const token = getToken();
   
   if (!token) {
@@ -208,5 +294,7 @@ module.exports = {
   addToken,
   removeToken,
   getTokenCount,
-  getFacebookInfo
+  getFacebookInfo,
+  resolveUid,
+  extractUidFromUrl
 };

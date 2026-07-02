@@ -7,14 +7,28 @@ const path = require('path');
 
 dotenv.config();
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { 
-  polling: {
-    params: {
-      allowed_updates: ["message", "callback_query", "message_reaction"]
-    }
-  },
+const bot = new TelegramBot(process.env.BOT_TOKEN, {
+  polling: false,
   request: { timeout: 60000 }
 });
+
+(async () => {
+  try {
+    // Xóa toàn bộ update đang chờ
+    await bot.getUpdates({ timeout: 0 });
+
+    // Bắt đầu polling
+    await bot.startPolling({
+      params: {
+        allowed_updates: ["message", "callback_query", "message_reaction"]
+      }
+    });
+
+    console.log("✅ Polling started (đã bỏ qua update cũ)");
+  } catch (err) {
+    console.error("❌ Không thể khởi động bot:", err);
+  }
+})();
 
 setupAudioButton(bot);
 
