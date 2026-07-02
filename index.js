@@ -14,19 +14,26 @@ const bot = new TelegramBot(process.env.BOT_TOKEN, {
 
 (async () => {
   try {
-    // Xóa toàn bộ update đang chờ
-    await bot.getUpdates({ timeout: 0 });
+    const updates = await bot.getUpdates({ timeout: 0 });
 
-    // Bắt đầu polling
+    if (updates.length > 0) {
+      const lastUpdateId = updates[updates.length - 1].update_id;
+
+      await bot.getUpdates({
+        offset: lastUpdateId + 1,
+        timeout: 0
+      });
+    }
+
     await bot.startPolling({
       params: {
         allowed_updates: ["message", "callback_query", "message_reaction"]
       }
     });
 
-    console.log("✅ Polling started (đã bỏ qua update cũ)");
+    console.log("✅ Đã bỏ qua toàn bộ update cũ.");
   } catch (err) {
-    console.error("❌ Không thể khởi động bot:", err);
+    console.error(err);
   }
 })();
 
