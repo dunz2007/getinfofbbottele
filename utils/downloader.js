@@ -175,6 +175,7 @@ async function fetchTikTokData(url) {
       files.push({
         type: "video",
         ext: "mp4",
+        url: json.play,
         path: await streamURL(json.play, "mp4", title)
       });
     }
@@ -183,6 +184,7 @@ async function fetchTikTokData(url) {
       files.push({
         type: "audio",
         ext: "mp3",
+        url: json.music,
         path: await streamURL(json.music, "mp3", json.music_info?.title || title)
       });
     }
@@ -259,6 +261,7 @@ const source = mediaData.source || detectPlatform(url) || "unknown";
         files.push({
           type: "video",
           ext: "mp4",
+          url: selectedVideo.url,
           path: await streamURL(
   selectedVideo.url,
   "mp4",
@@ -287,6 +290,7 @@ const source = mediaData.source || detectPlatform(url) || "unknown";
         files.push({
           type: "audio",
           ext: "mp3",
+          url: audio.url,
           path: await streamURL(
   audio.url,
   "mp3",
@@ -337,11 +341,18 @@ async function handleDownloader(bot, msg) {
   await bot.deleteMessage(chatId, loading.message_id).catch(() => {});
 
 const cleanTitle = sanitizeFileName(result.title || platform);
+const videoUrl = result.files.find(f => f.type === "video")?.url;
+
+const directLinks = [
+  videoUrl ? `🎥 Link video: ${videoUrl}` : null,
+  audioUrl ? `🎵 Link MP3: ${audioUrl}` : null
+].filter(Boolean).join("\n");
 
 const caption =
 `👤 Tên Kênh: ${result.author}
 📝 Tiêu Đề: ${limitText(result.title, 700)}
 📱 Nền tảng: ${result.source}
+${videoUrl ? `🔗 Link tải:\n${videoUrl}\n` : ""}
 ──────────────────
 📺 Tính năng tải đa nền tảng.`;
 
